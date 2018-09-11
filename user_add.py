@@ -1,6 +1,5 @@
 import bridgeclient as bc
 import synapseclient as sc
-import pandas as pd
 import argparse
 
 INPUT_TABLE = "syn16784393"
@@ -83,12 +82,8 @@ def process_request(bridge, participant_info, phone_number, external_id):
 
 def create_table_row(status, phone_number, guid,
                      visit_date, output_table = OUTPUT_TABLE):
-    table_values = pd.Series({
-        'phone_number': int(phone_number),
-        'guid': guid,
-        'visit_date': visit_date,
-        'status': status})
-    return table_values.values.tolist()
+    table_values = [int(phone_number), guid, visit_date, status]
+    return table_values
 
 
 def main():
