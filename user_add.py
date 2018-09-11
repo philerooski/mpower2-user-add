@@ -1,11 +1,15 @@
-import bridgeclient as bc
 import synapseclient as sc
-import argparse
+#import bridgeclient as bc
+import pandas as pd
+import boto3
+import json
 
 INPUT_TABLE = "syn16784393"
 OUTPUT_TABLE = "syn16786935"
 
 def read_args():
+    # only used for testing
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridgeUsername")
     parser.add_argument("--bridgePassword")
@@ -85,10 +89,43 @@ def create_table_row(status, phone_number, guid,
     table_values = [int(phone_number), guid, visit_date, status]
     return table_values
 
+def get_secret():
+    secret_name = "phil/synapse/bridge"
+    endpoint_url = "https://secretsmanager.us-west-2.amazonaws.com"
+    region_name = "us-west-2"
+
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name,
+        endpoint_url=endpoint_url
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'ResourceNotFoundException':
+            print("The requested secret " + secret_name + " was not found")
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            print("The request was invalid due to:", e)
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            print("The request had invalid params:", e)
+    else:
+        # Decrypted secret using the associated KMS CMK
+        # Depending on whether the secret was a string or binary, one of these fields will be populated
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+        else:
+            binary_secret_data = get_secret_value_response['SecretBinary']
+    return secret
+
 
 def main():
-    args = read_args()
-    syn = sc.login(args.synapseUsername, args.synapsePassword)
+    credentials = json.loads(get_secret())
+    syn = sc.Synapse(configPath = "/var/task/.synapseConfig")
+    syn.login(email = credentials['synapseUsername'],
+              password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
     if any(duplicated_numbers):
@@ -113,7 +150,7 @@ def main():
                                              "number",
                                              user.phone_number, user.guid, user.visit_date)
             else:
-                bridge = get_bridge_client(args.bridgeUsername, args.bridgePassword)
+                bridge = get_bridge_client(credentials['bridgeUsername'], credentials['bridgePassword'])
                 participant_info = get_participant_info(bridge, user.phone_number)
                 status = process_request(bridge, participant_info,
                                          user.phone_number, user.guid)
@@ -125,8 +162,14 @@ def main():
                                          -1, user.guid, user.visit_date)
         to_append_to_table.append(table_row)
     if len(to_append_to_table):
+        print("to_append_to_table:", to_append_to_table)
+        print("duplicated_numbers:", duplicated_numbers)
+        print("syn", syn)
         syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
 
+
+def lambda_handler(event, context):
+    main()
 
 if __name__ == "__main__":
     main()
