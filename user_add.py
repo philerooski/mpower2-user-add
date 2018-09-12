@@ -1,15 +1,12 @@
 import synapseclient as sc
 import bridgeclient as bc
 import pandas as pd
-import boto3
-import json
+import argparse
 
 INPUT_TABLE = "syn16784393"
 OUTPUT_TABLE = "syn16786935"
 
 def read_args():
-    # only used for testing
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridgeUsername")
     parser.add_argument("--bridgePassword")
@@ -121,11 +118,14 @@ def get_secret():
     return secret
 
 
-def main():
+def get_credentials():
+    # Get credentials within this script
     credentials = json.loads(get_secret())
-    syn = sc.Synapse(configPath = "/var/task/.synapseConfig")
-    syn.login(email = credentials['synapseUsername'],
-              password = credentials['synapsePassword'])
+    return credentials
+
+def main():
+    args = read_args()
+    syn.login(email = args.synapseUsername, password = args.synapsePassword)
     new_users = get_new_users(syn)
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
     if any(duplicated_numbers):
@@ -150,7 +150,7 @@ def main():
                                              "number",
                                              user.phone_number, user.guid, user.visit_date)
             else:
-                bridge = get_bridge_client(credentials['bridgeUsername'], credentials['bridgePassword'])
+                bridge = get_bridge_client(args.bridgeUsername, args.bridgePassword)
                 participant_info = get_participant_info(bridge, user.phone_number)
                 status = process_request(bridge, participant_info,
                                          user.phone_number, user.guid)
