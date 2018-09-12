@@ -49,7 +49,7 @@ def process_request(bridge, participant_info, phone_number, external_id):
             bridge.restPOST(
                     "/v3/participants",
                     {"externalId": external_id,
-                     "phone": {"number": phone_number,
+                     "phone": {"number": str(phone_number),
                                "regionCode": "US"},
                      "dataGroups": "clinical_consent"}) # assume US?
             return "Success: User account created"
