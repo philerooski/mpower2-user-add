@@ -51,7 +51,7 @@ def process_request(bridge, participant_info, phone_number, external_id):
                     {"externalId": external_id,
                      "phone": {"number": str(phone_number),
                                "regionCode": "US"},
-                     "dataGroups": "clinical_consent"}) # assume US?
+                     "dataGroups": ["clinical_consent"]}) # assume US?
             return "Success: User account created"
         except Exception as e:
             return ("Error: Could not create user account. "
