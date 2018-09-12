@@ -126,7 +126,7 @@ def get_credentials():
 
 def main():
     credentials = get_credentials()
-    syn.login(email = credentials['synapseUsername'],
+    syn = sc.login(email = credentials['synapseUsername'],
               password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
