@@ -169,9 +169,5 @@ def main():
         syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
 
 
-def lambda_handler(event, context):
-    main()
-
-
 if __name__ == "__main__":
     main()
