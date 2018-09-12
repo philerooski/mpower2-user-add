@@ -127,7 +127,7 @@ def get_credentials():
 def main():
     credentials = get_credentials()
     syn = sc.login(email = credentials['synapseUsername'],
-              password = credentials['synapsePassword'])
+                   password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
     if any(duplicated_numbers):
@@ -146,7 +146,7 @@ def main():
     to_append_to_table = []
     for i, user in new_users.iterrows():
         try:
-            if not (len(user.phone_number) == 10 and user.phone_number.isdigit()):
+            if not (len(str(user.phone_number)) == 10 and str(user.phone_number).isdigit()):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
