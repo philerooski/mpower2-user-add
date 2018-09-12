@@ -1,5 +1,5 @@
 import synapseclient as sc
-#import bridgeclient as bc
+import bridgeclient as bc
 import pandas as pd
 import boto3
 import json
@@ -162,14 +162,12 @@ def main():
                                          -1, user.guid, user.visit_date)
         to_append_to_table.append(table_row)
     if len(to_append_to_table):
-        print("to_append_to_table:", to_append_to_table)
-        print("duplicated_numbers:", duplicated_numbers)
-        print("syn", syn)
         syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
 
 
 def lambda_handler(event, context):
     main()
+
 
 if __name__ == "__main__":
     main()
