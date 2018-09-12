@@ -49,9 +49,10 @@ def process_request(bridge, participant_info, phone_number, external_id):
             bridge.restPOST(
                     "/v3/participants",
                     {"externalId": external_id,
-                     "phone": {"number": str(phone_number),
+                     "phone": {"number": phone_number,
                                "regionCode": "US"},
-                     "dataGroups": ["clinical_consent"]}) # assume US?
+                     "dataGroups": ["clinical_consent"],
+                     "sharingScope": "sponsors_and_partners"}) # assume US?
             return "Success: User account created"
         except Exception as e:
             return ("Error: Could not create user account. "
