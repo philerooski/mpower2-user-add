@@ -3,6 +3,7 @@ import bridgeclient as bc
 import pandas as pd
 import boto3
 import json
+from botocore.exceptions import ClientError
 
 INPUT_TABLE = "syn16784393"
 OUTPUT_TABLE = "syn16786935"
