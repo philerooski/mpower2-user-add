@@ -9,6 +9,8 @@ INPUT_TABLE = "syn16784393"
 OUTPUT_TABLE = "syn16786935"
 
 def read_args():
+    # for testing
+    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--bridgeUsername")
     parser.add_argument("--bridgePassword")
@@ -65,7 +67,9 @@ def process_request(bridge, participant_info, phone_number, external_id):
             bridge.restPOST("/v3/externalIds", [external_id])
             bridge.restPOST(
                     "/v3/participants/{}".format(user_id),
-                    {"externalId": external_id})
+                    {"externalId": external_id,
+                     "dataGroups": ["clinical_consent"],
+                     "sharingScope": "sponsors_and_partners"}) # assume US?
             return ("Success: Preexisting user account found. "
                     "New External ID assigned.")
         except Exception as e:
