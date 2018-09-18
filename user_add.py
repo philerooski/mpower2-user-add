@@ -79,7 +79,7 @@ def process_request(bridge, participant_info, phone_number, external_id):
     elif participant_info['items'][0]['externalId'] != external_id:
         # phone and external ID have already been assigned
         return ("Error: Preexisting account found with guid {}. "
-                "Please contact larsson.omberg@sagebase.org "
+                "Please contact AtHomePD_support@synapse.org "
                 "if you would like to assign a new guid.".format(
                     participant_info['items'][0]['externalId']))
     elif participant_info['items'][0]['externalId'] == external_id:
