@@ -151,11 +151,13 @@ def main():
         return
     to_append_to_table = []
     for i, user in new_users.iterrows():
+        user.phone_number = int(user.phone_number)
+        user.visit_date = int(user.visit_date)
         print("phone_number: ", user.phone_number)
         print("guid: ", user.guid)
         print("visit_date: ", user.visit_date)
         try:
-            if not (len(str(user.phone_number).strip()) == 10 and str(user.phone_number).strip().isdigit()):
+            if not (len(str(user.phone_number)) == 10 and str(user.phone_number).isdigit()):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
