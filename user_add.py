@@ -151,6 +151,9 @@ def main():
         return
     to_append_to_table = []
     for i, user in new_users.iterrows():
+        print("phone_number: ", user.phone_number)
+        print("guid: ", user.guid)
+        print("visit_date: ", user.visit_date)
         try:
             if not (len(str(user.phone_number).strip()) == 10 and str(user.phone_number).strip().isdigit()):
                 table_row = create_table_row("Error: The phone number is improperly "
