@@ -151,29 +151,30 @@ def main():
         return
     to_append_to_table = []
     for i, user in new_users.iterrows():
-        user.phone_number = int(user.phone_number)
-        user.visit_date = int(user.visit_date)
-        print("phone_number: ", user.phone_number)
-        print("guid: ", user.guid)
-        print("visit_date: ", user.visit_date)
+        phone_number = int(user.phone_number)
+        guid = user.guid
+        visit_date = int(user.visit_date)
+        print("phone_number: ", phone_number)
+        print("guid: ", guid)
+        print("visit_date: ", visit_date)
         try:
-            if not (len(str(user.phone_number)) == 10 and str(user.phone_number).isdigit()):
+            if not (len(str(phone_number)) == 10 and str(phone_number).isdigit()):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
-                                             user.phone_number, user.guid, user.visit_date)
+                                             phone_number, guid, visit_date)
             else:
                 bridge = get_bridge_client(credentials['bridgeUsername'],
                                            credentials['bridgePassword'])
-                participant_info = get_participant_info(bridge, user.phone_number)
+                participant_info = get_participant_info(bridge, phone_number)
                 status = process_request(bridge, participant_info,
-                                         user.phone_number, user.guid)
-                table_row = create_table_row(status, user.phone_number,
-                                             user.guid, user.visit_date)
+                                         phone_number, guid)
+                table_row = create_table_row(status, phone_number,
+                                             guid, visit_date)
         except Exception as e:
             table_row = create_table_row("Error: One of the fields is improperly "
                                          "formatted. Console output: {0}".format(e),
-                                         -1, user.guid, user.visit_date)
+                                         -1, guid, visit_date)
         to_append_to_table.append(table_row)
     if len(to_append_to_table):
         syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
