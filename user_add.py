@@ -3,6 +3,7 @@ import bridgeclient as bc
 import pandas as pd
 import boto3
 import json
+import os
 from botocore.exceptions import ClientError
 
 INPUT_TABLE = "syn16784393"
@@ -18,6 +19,15 @@ def read_args():
     parser.add_argument("--synapsePassword")
     args = parser.parse_args()
     return args
+
+
+def get_env_var_credentials():
+    credentials = {}
+    credentials['synapseUsername'] = os.getenv('synapseUsername')
+    credentials['synapsePassword'] = os.getenv('synapsePassword')
+    credentials['bridgeUsername'] = os.getenv('bridgeUsername')
+    credentials['bridgePassword'] = os.getenv('bridgePassword')
+    return credentials
 
 
 def delete_na_rows(syn):
@@ -147,7 +157,7 @@ def get_credentials():
     return credentials
 
 def main():
-    credentials = get_credentials()
+    credentials = get_env_var_credentials()
     syn = sc.login(email = credentials['synapseUsername'],
                    password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
