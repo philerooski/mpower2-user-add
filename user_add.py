@@ -155,6 +155,7 @@ def main():
         table_row = create_table_row(new_users[0], new_users[1],
                                      new_users[2], new_users[3])
         syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
+        return
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
     if any(duplicated_numbers):
         duplicates = new_users.loc[duplicated_numbers]
