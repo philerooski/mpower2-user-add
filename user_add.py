@@ -35,7 +35,7 @@ def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
             return ("Error: phone_number and guid was left blank", -1, -1, user.visit_date)
         elif pd.isnull(user.phone_number):
             delete_na_rows(syn)
-            return ("Error: phone_number was left blank", -1, user.guid, user, user.visit_date)
+            return ("Error: phone_number was left blank", -1, user.guid, user.visit_date)
         elif pd.isnull(user.guid):
             delete_na_rows(syn)
             return ("Error: guid was left blank", user.phone_number, -1, user.visit_date)
