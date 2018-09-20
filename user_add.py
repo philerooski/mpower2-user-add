@@ -4,6 +4,7 @@ import pandas as pd
 import boto3
 import json
 import os
+import re
 from botocore.exceptions import ClientError
 
 INPUT_TABLE = "syn16784393"
@@ -119,6 +120,7 @@ def create_table_row(status, phone_number, guid,
     table_values = [int(phone_number), guid, int(visit_date), status]
     return table_values
 
+
 def get_secret():
     secret_name = "phil/synapse/bridge"
     endpoint_url = "https://secretsmanager.us-west-2.amazonaws.com"
@@ -151,10 +153,20 @@ def get_secret():
     return secret
 
 
+def is_valid_guid(guid):
+    p = re.compile(".{4}-.{3}-.{3}")
+    match = re.match(p, guid)
+    if match is not None:
+        return True
+    else:
+        return False
+
+
 def get_credentials():
     # Get credentials within this script
     credentials = json.loads(get_secret())
     return credentials
+
 
 def main():
     credentials = get_env_var_credentials()
@@ -186,13 +198,18 @@ def main():
         guid = user.guid
         visit_date = int(user.visit_date)
         print("phone_number: ", phone_number)
-        print("guid: ", guid)
+        print("guid: ", str(guid))
         print("visit_date: ", visit_date)
         try:
             if not (len(str(phone_number)) == 10 and str(phone_number).isdigit()):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
+                                             phone_number, guid, visit_date)
+            elif not is_valid_guid(guid):
+                table_row = create_table_row("Error: The guid is improperly "
+                                             "formatted. Please enter a valid guid "
+                                             "in XXXX-XXX-XXX format",
                                              phone_number, guid, visit_date)
             else:
                 bridge = get_bridge_client(credentials['bridgeUsername'],
