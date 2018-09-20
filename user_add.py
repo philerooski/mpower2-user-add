@@ -20,14 +20,30 @@ def read_args():
     return args
 
 
+def delete_na_rows(syn):
+    rows_to_delete = syn.tableQuery(
+            "select * from {} where phone_number is null or guid is null".format(INPUT_TABLE))
+    syn.delete(rows_to_delete)
+
 def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
     input_table_df = syn.tableQuery(
             "select * from {}".format(input_table)).asDataFrame()
-    input_table_df = input_table_df.set_index("phone_number", drop=False)
+    input_table_df = input_table_df.set_index(["phone_number", "guid"], drop=False)
+    for i, user in input_table_df.iterrows():
+        if pd.isnull(user.phone_number) and pd.isnull(user.guid):
+            delete_na_rows(syn)
+            return ("Error: phone_number and guid was left blank", -1, -1, user.visit_date)
+        elif pd.isnull(user.phone_number):
+            delete_na_rows(syn)
+            return ("Error: phone_number was left blank", -1, user.guid, user, user.visit_date)
+        elif pd.isnull(user.guid):
+            delete_na_rows(syn)
+            return ("Error: guid was left blank", user.phone_number, -1, user.visit_date)
     output_table_df = syn.tableQuery(
-            "select phone_number from {}".format(output_table)).asDataFrame()
-    new_numbers = set(input_table_df.phone_number.values).difference(
-            output_table_df.phone_number.values)
+            "select phone_number, guid from {}".format(
+                output_table)).asDataFrame().set_index(["phone_number", "guid"], drop = False)
+    new_numbers = set(input_table_df.index.values).difference(
+            output_table_df.index.values)
     return input_table_df.loc[list(new_numbers)]
 
 
@@ -135,6 +151,10 @@ def main():
     syn = sc.login(email = credentials['synapseUsername'],
                    password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
+    if isinstance(new_users, tuple): # returned error message
+        table_row = create_table_row(new_users[0], new_users[1],
+                                     new_users[2], new_users[3])
+        syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
     duplicated_numbers = new_users.phone_number.duplicated(keep = False)
     if any(duplicated_numbers):
         duplicates = new_users.loc[duplicated_numbers]
