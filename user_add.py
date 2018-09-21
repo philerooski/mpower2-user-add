@@ -119,7 +119,7 @@ def process_request(bridge, participant_info, phone_number, external_id):
 
 def create_table_row(status, phone_number, guid,
                      visit_date, output_table = OUTPUT_TABLE):
-    table_values = [int(phone_number), guid, int(visit_date), status]
+    table_values = [str(phone_number), str(guid), int(visit_date), status]
     return table_values
 
 
