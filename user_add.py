@@ -202,8 +202,8 @@ def main():
                                          "if you would like to assign a new guid.",
                                          duplicates.phone_number.iloc[0],
                                          "", duplicates.visit_date.iloc[0])
-        syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
-        return
+            syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
+            return
     to_append_to_table = []
     for i, user in new_users.iterrows():
         phone_number = str(user.phone_number)
