@@ -156,7 +156,7 @@ def get_secret():
 
 
 def is_valid_guid(guid):
-    p = re.compile(".{4}-.{3}-.{3}")
+    p = re.compile("\w{4}-\w{3}-\w{3}")
     match = re.match(p, guid)
     if match is not None:
         return True
