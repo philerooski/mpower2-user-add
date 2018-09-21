@@ -155,6 +155,16 @@ def get_secret():
     return secret
 
 
+def is_valid_phone_number(phone_number):
+    phone_number = str(phone_number)
+    p = re.compile("\D")
+    phone_number = re.sub(p, "", phone_number)
+    if len(phone_number) == 10 and phone_number.isdigit():
+        return True
+    else:
+        return False
+
+
 def is_valid_guid(guid):
     p = re.compile("\w{4}-\w{3}-\w{3}")
     match = re.match(p, guid)
@@ -187,23 +197,23 @@ def main():
             table_row = create_table_row("Error: It looks like you accidentally "
                                          "entered an incorrect guid and tried to "
                                          "submit a corrected one immediately "
-                                         "afterwards. Please delete the duplicate "
-                                         "phone number from the Users table "
-                                         "(syn16784393) and this table (syn16786935) "
-                                         "and resubmit.", duplicates.phone_number.iloc[0],
+                                         "afterwards. Please contact "
+                                         "AtHomePD_support@synapse.org "
+                                         "if you would like to assign a new guid.",
+                                         duplicates.phone_number.iloc[0],
                                          "", duplicates.visit_date.iloc[0])
         syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
         return
     to_append_to_table = []
     for i, user in new_users.iterrows():
-        phone_number = int(user.phone_number)
-        guid = user.guid
+        phone_number = str(user.phone_number)
+        guid = str(user.guid)
         visit_date = int(user.visit_date)
         print("phone_number: ", phone_number)
         print("guid: ", str(guid))
         print("visit_date: ", visit_date)
         try:
-            if not (len(str(phone_number)) == 10 and str(phone_number).isdigit()):
+            if not is_valid_phone_number(phone_number):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
@@ -211,7 +221,8 @@ def main():
             elif not is_valid_guid(guid):
                 table_row = create_table_row("Error: The guid is improperly "
                                              "formatted. Please enter a valid guid "
-                                             "in XXXX-XXX-XXX format",
+                                             "in XXXX-XXX-XXX format using only "
+                                             "alphanumeric characters and hyphens.",
                                              phone_number, guid, visit_date)
             else:
                 bridge = get_bridge_client(credentials['bridgeUsername'],
