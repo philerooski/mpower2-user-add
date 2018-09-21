@@ -155,10 +155,15 @@ def get_secret():
     return secret
 
 
-def is_valid_phone_number(phone_number):
+def get_phone_number_digits(phone_number):
     phone_number = str(phone_number)
     p = re.compile("\D")
     phone_number = re.sub(p, "", phone_number)
+    return phone_number
+
+
+def is_valid_phone_number(phone_number):
+    phone_number = get_phone_number_digits(phone_number)
     if len(phone_number) == 10 and phone_number.isdigit():
         return True
     else:
@@ -206,7 +211,7 @@ def main():
             return
     to_append_to_table = []
     for i, user in new_users.iterrows():
-        phone_number = str(user.phone_number)
+        phone_number = get_phone_number_digits(user.phone_number)
         guid = str(user.guid)
         visit_date = int(user.visit_date)
         print("phone_number: ", phone_number)
