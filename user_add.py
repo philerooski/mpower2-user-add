@@ -86,6 +86,8 @@ def process_request(bridge, participant_info, phone_number, external_id):
             return "Success: User account created"
         except Exception as e:
             return ("Error: Could not create user account. "
+                    "Does your phone number have a US area code and/or "
+                    "has the GUID already been assigned? "
                     "Console output: {0}".format(e))
     elif 'externalId' not in participant_info['items'][0]:
         try:
