@@ -55,8 +55,11 @@ def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
     output_table_df = syn.tableQuery(
             "select phone_number, guid from {}".format(
                 output_table)).asDataFrame().set_index(["phone_number", "guid"], drop = False)
+    print("input", input_table_df)
+    print("output", output_table_df)
     new_numbers = set(input_table_df.index.values).difference(
             output_table_df.index.values)
+    print("new_numbers", new_numbers)
     return input_table_df.loc[list(new_numbers)]
 
 
