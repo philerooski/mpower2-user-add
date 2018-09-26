@@ -39,9 +39,6 @@ def delete_na_rows(syn):
 def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
     input_table_df = syn.tableQuery(
             "select * from {}".format(input_table)).asDataFrame()
-    phone_number_ints = input_table_df.phone_number.apply(get_phone_number_digits)
-    input_table_df['phone_number'] = phone_number_ints
-    input_table_df = input_table_df.set_index(["phone_number", "guid"], drop=False)
     for i, user in input_table_df.iterrows():
         if pd.isnull(user.phone_number) and pd.isnull(user.guid):
             delete_na_rows(syn)
@@ -52,6 +49,9 @@ def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
         elif pd.isnull(user.guid):
             delete_na_rows(syn)
             return ("Error: guid was left blank", user.phone_number, -1, user.visit_date)
+    phone_number_ints = input_table_df.phone_number.apply(get_phone_number_digits)
+    input_table_df['phone_number'] = phone_number_ints
+    input_table_df = input_table_df.set_index(["phone_number", "guid"], drop=False)
     output_table_df = syn.tableQuery(
             "select phone_number, guid from {}".format(
                 output_table)).asDataFrame().set_index(["phone_number", "guid"], drop = False)
