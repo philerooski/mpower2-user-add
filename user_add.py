@@ -216,10 +216,10 @@ def main():
     to_append_to_table = []
     for i, user in new_users.iterrows():
         phone_number = get_phone_number_digits(user.phone_number)
-        guid = str(user.guid)
+        guid = str(user.guid).strip()
         visit_date = int(user.visit_date)
         print("phone_number: ", phone_number)
-        print("guid: ", str(guid))
+        print("guid: ", guid)
         print("visit_date: ", visit_date)
         try:
             if not is_valid_phone_number(phone_number):
