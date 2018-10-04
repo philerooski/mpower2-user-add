@@ -8,8 +8,8 @@ import os
 import re
 from botocore.exceptions import ClientError
 
-INPUT_TABLE = "syn16847925"
-OUTPUT_TABLE = "syn16847926"
+INPUT_TABLE = "syn16784393"
+OUTPUT_TABLE = "syn16786935"
 
 def read_args():
     # for testing
