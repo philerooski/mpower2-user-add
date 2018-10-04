@@ -196,7 +196,7 @@ def get_credentials():
 
 
 def main():
-    credentials = read_args()
+    credentials = get_env_var_credentials()
     syn = sc.login(email = credentials['synapseUsername'],
                    password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
