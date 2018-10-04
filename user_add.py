@@ -1,6 +1,7 @@
 import synapseclient as sc
 import bridgeclient as bc
 import pandas as pd
+import random
 import boto3
 import json
 import os
