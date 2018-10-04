@@ -7,8 +7,8 @@ import os
 import re
 from botocore.exceptions import ClientError
 
-INPUT_TABLE = "syn16784393"
-OUTPUT_TABLE = "syn16786935"
+INPUT_TABLE = "syn16847925"
+OUTPUT_TABLE = "syn16847926"
 
 def read_args():
     # for testing
@@ -79,13 +79,19 @@ def process_request(bridge, participant_info, phone_number, external_id):
     if participant_info['total'] == 0:
         # create account
         try:
+            # assign to random engagement group
+            engagement_groups = random.choice([
+                ["gr_SC_DB","gr_SC_CS"],
+                ["gr_BR_AD","gr_BR_II"],
+                ["gr_ST_T","gr_ST_F"],
+                ["gr_DT_F","gr_DT_T"]])
             bridge.restPOST("/v3/externalIds", [external_id])
             bridge.restPOST(
                     "/v3/participants",
                     {"externalId": external_id,
                      "phone": {"number": phone_number,
                                "regionCode": "US"},
-                     "dataGroups": ["clinical_consent"],
+                     "dataGroups": engagement_groups + ["clinical_consent"],
                      "sharingScope": "sponsors_and_partners"}) # assume US?
             return "Success: User account created"
         except Exception as e:
@@ -190,7 +196,7 @@ def get_credentials():
 
 
 def main():
-    credentials = get_env_var_credentials()
+    credentials = read_args()
     syn = sc.login(email = credentials['synapseUsername'],
                    password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
