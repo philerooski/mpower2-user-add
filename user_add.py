@@ -5,8 +5,10 @@ import boto3
 import json
 from botocore.exceptions import ClientError
 
-INPUT_TABLE = "syn16784393"
-OUTPUT_TABLE = "syn16786935"
+
+INPUT_TABLE = "syn16847925"
+OUTPUT_TABLE = "syn16847926"
+
 
 def read_args():
     # for testing
@@ -24,6 +26,7 @@ def delete_na_rows(syn):
     rows_to_delete = syn.tableQuery(
             "select * from {} where phone_number is null or guid is null".format(INPUT_TABLE))
     syn.delete(rows_to_delete)
+
 
 def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
     input_table_df = syn.tableQuery(
@@ -109,35 +112,54 @@ def create_table_row(status, phone_number, guid,
     table_values = [int(phone_number), guid, int(visit_date), status]
     return table_values
 
+
 def get_secret():
     secret_name = "phil/synapse/bridge"
-    endpoint_url = "https://secretsmanager.us-west-2.amazonaws.com"
-    region_name = "us-west-2"
+    region_name = "us-east-1"
 
+    # Create a Secrets Manager client
     session = boto3.session.Session()
     client = session.client(
         service_name='secretsmanager',
-        region_name=region_name,
-        endpoint_url=endpoint_url
+        region_name=region_name
     )
+
+    # In this sample we only handle the specific exceptions for the 'GetSecretValue' API.
+    # See https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+    # We rethrow the exception by default.
+
     try:
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
     except ClientError as e:
-        if e.response['Error']['Code'] == 'ResourceNotFoundException':
-            print("The requested secret " + secret_name + " was not found")
-        elif e.response['Error']['Code'] == 'InvalidRequestException':
-            print("The request was invalid due to:", e)
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            # An error occurred on the server side.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
         elif e.response['Error']['Code'] == 'InvalidParameterException':
-            print("The request had invalid params:", e)
+            # You provided an invalid value for a parameter.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            # You provided a parameter value that is not valid for the current state of the resource.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            # We can't find the resource that you asked for.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
     else:
-        # Decrypted secret using the associated KMS CMK
-        # Depending on whether the secret was a string or binary, one of these fields will be populated
+        # Decrypts secret using the associated KMS CMK.
+        # Depending on whether the secret is a string or binary, one of these fields will be populated.
         if 'SecretString' in get_secret_value_response:
             secret = get_secret_value_response['SecretString']
         else:
-            binary_secret_data = get_secret_value_response['SecretBinary']
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
     return secret
 
 
@@ -146,10 +168,12 @@ def get_credentials():
     credentials = json.loads(get_secret())
     return credentials
 
+
 def main():
     credentials = get_credentials()
-    syn = sc.login(email = credentials['synapseUsername'],
-                   password = credentials['synapsePassword'])
+    syn = sc.Synapse(configPath="/var/task/.synapseConfig")
+    syn.login(email = credentials['synapseUsername'],
+              password = credentials['synapsePassword'])
     new_users = get_new_users(syn)
     if isinstance(new_users, tuple): # returned error message
         table_row = create_table_row(new_users[0], new_users[1],
@@ -199,6 +223,10 @@ def main():
         to_append_to_table.append(table_row)
     if len(to_append_to_table):
         syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
+
+
+def lambda_handler(e, c):
+    main()
 
 
 if __name__ == "__main__":
