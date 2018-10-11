@@ -1,8 +1,11 @@
 import synapseclient as sc
 import bridgeclient as bc
 import pandas as pd
+import random
 import boto3
 import json
+import os
+import re
 from botocore.exceptions import ClientError
 
 
@@ -22,6 +25,15 @@ def read_args():
     return args
 
 
+def get_env_var_credentials():
+    credentials = {}
+    credentials['synapseUsername'] = os.getenv('synapseUsername')
+    credentials['synapsePassword'] = os.getenv('synapsePassword')
+    credentials['bridgeUsername'] = os.getenv('bridgeUsername')
+    credentials['bridgePassword'] = os.getenv('bridgePassword')
+    return credentials
+
+
 def delete_na_rows(syn):
     rows_to_delete = syn.tableQuery(
             "select * from {} where phone_number is null or guid is null".format(INPUT_TABLE))
@@ -31,7 +43,6 @@ def delete_na_rows(syn):
 def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
     input_table_df = syn.tableQuery(
             "select * from {}".format(input_table)).asDataFrame()
-    input_table_df = input_table_df.set_index(["phone_number", "guid"], drop=False)
     for i, user in input_table_df.iterrows():
         if pd.isnull(user.phone_number) and pd.isnull(user.guid):
             delete_na_rows(syn)
@@ -42,9 +53,14 @@ def get_new_users(syn, input_table = INPUT_TABLE, output_table = OUTPUT_TABLE):
         elif pd.isnull(user.guid):
             delete_na_rows(syn)
             return ("Error: guid was left blank", user.phone_number, -1, user.visit_date)
+    phone_number_ints = input_table_df.phone_number.apply(get_phone_number_digits)
+    input_table_df['phone_number'] = phone_number_ints
+    input_table_df['phone_number'] = input_table_df.phone_number.astype(str)
+    input_table_df = input_table_df.set_index(["phone_number", "guid"], drop=False)
     output_table_df = syn.tableQuery(
-            "select phone_number, guid from {}".format(
-                output_table)).asDataFrame().set_index(["phone_number", "guid"], drop = False)
+            "select phone_number, guid from {}".format(output_table)).asDataFrame()
+    output_table_df['phone_number'] = output_table_df.phone_number.astype(str)
+    output_table_df = output_table_df.set_index(["phone_number", "guid"], drop = False)
     new_numbers = set(input_table_df.index.values).difference(
             output_table_df.index.values)
     return input_table_df.loc[list(new_numbers)]
@@ -67,17 +83,25 @@ def process_request(bridge, participant_info, phone_number, external_id):
     if participant_info['total'] == 0:
         # create account
         try:
+            # assign to random engagement group
+            engagement_groups = random.choice([
+                ["gr_SC_DB","gr_SC_CS"],
+                ["gr_BR_AD","gr_BR_II"],
+                ["gr_ST_T","gr_ST_F"],
+                ["gr_DT_F","gr_DT_T"]])
             bridge.restPOST("/v3/externalIds", [external_id])
             bridge.restPOST(
                     "/v3/participants",
                     {"externalId": external_id,
                      "phone": {"number": phone_number,
                                "regionCode": "US"},
-                     "dataGroups": ["clinical_consent"],
+                     "dataGroups": engagement_groups + ["clinical_consent"],
                      "sharingScope": "sponsors_and_partners"}) # assume US?
             return "Success: User account created"
         except Exception as e:
             return ("Error: Could not create user account. "
+                    "Does your phone number have a US area code and/or "
+                    "has the GUID already been assigned? "
                     "Console output: {0}".format(e))
     elif 'externalId' not in participant_info['items'][0]:
         try:
@@ -109,7 +133,7 @@ def process_request(bridge, participant_info, phone_number, external_id):
 
 def create_table_row(status, phone_number, guid,
                      visit_date, output_table = OUTPUT_TABLE):
-    table_values = [int(phone_number), guid, int(visit_date), status]
+    table_values = [str(phone_number), str(guid), int(visit_date), status]
     return table_values
 
 
@@ -163,6 +187,30 @@ def get_secret():
     return secret
 
 
+def get_phone_number_digits(phone_number):
+    phone_number = str(phone_number)
+    p = re.compile("\D")
+    phone_number = re.sub(p, "", phone_number)
+    return phone_number
+
+
+def is_valid_phone_number(phone_number):
+    phone_number = get_phone_number_digits(phone_number)
+    if len(phone_number) == 10 and phone_number.isdigit():
+        return True
+    else:
+        return False
+
+
+def is_valid_guid(guid):
+    p = re.compile("\w{4}-\w{3}-\w{3}")
+    match = re.match(p, guid)
+    if match is not None:
+        return True
+    else:
+        return False
+
+
 def get_credentials():
     # Get credentials within this script
     credentials = json.loads(get_secret())
@@ -187,26 +235,32 @@ def main():
             table_row = create_table_row("Error: It looks like you accidentally "
                                          "entered an incorrect guid and tried to "
                                          "submit a corrected one immediately "
-                                         "afterwards. Please delete the duplicate "
-                                         "phone number from the Users table "
-                                         "(syn16784393) and this table (syn16786935) "
-                                         "and resubmit.", duplicates.phone_number.iloc[0],
+                                         "afterwards. Please contact "
+                                         "AtHomePD_support@synapse.org "
+                                         "if you would like to assign a new guid.",
+                                         duplicates.phone_number.iloc[0],
                                          "", duplicates.visit_date.iloc[0])
-        syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
-        return
+            syn.store(sc.Table(OUTPUT_TABLE, [table_row]))
+            return
     to_append_to_table = []
     for i, user in new_users.iterrows():
-        phone_number = int(user.phone_number)
-        guid = user.guid
+        phone_number = get_phone_number_digits(user.phone_number)
+        guid = str(user.guid).strip()
         visit_date = int(user.visit_date)
         print("phone_number: ", phone_number)
         print("guid: ", guid)
         print("visit_date: ", visit_date)
         try:
-            if not (len(str(phone_number)) == 10 and str(phone_number).isdigit()):
+            if not is_valid_phone_number(phone_number):
                 table_row = create_table_row("Error: The phone number is improperly "
                                              "formatted. Please enter a valid, 10-digit "
                                              "number",
+                                             phone_number, guid, visit_date)
+            elif not is_valid_guid(guid):
+                table_row = create_table_row("Error: The guid is improperly "
+                                             "formatted. Please enter a valid guid "
+                                             "in XXXX-XXX-XXX format using only "
+                                             "alphanumeric characters and hyphens.",
                                              phone_number, guid, visit_date)
             else:
                 bridge = get_bridge_client(credentials['bridgeUsername'],
