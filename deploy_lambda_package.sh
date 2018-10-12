@@ -1,6 +1,7 @@
 mkdir mpower2_user_add_package
-pip-3.6 install --upgrade numpy pandas synapseclient boto3 -t mpower2_user_add_package
-pip-3.6 install git+https://github.com/larssono/bridgeclient.git -t mpower2_user_add_package
+pip-3.6 install -t mpower2_user_add_package --upgrade numpy pandas boto3 
+pip-3.6 install -t mpower2_user_add_package git+https://github.com/philerooski/synapsePythonClient.git
+pip-3.6 install -t mpower2_user_add_package git+https://github.com/larssono/bridgeclient.git
 cp user_add.py .synapseConfig mpower2_user_add_package
 cd mpower2_user_add_package
 zip -r ../mpower2_user_add_package.zip .

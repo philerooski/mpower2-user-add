@@ -276,7 +276,8 @@ def main():
                                          -1, guid, visit_date)
         to_append_to_table.append(table_row)
     if len(to_append_to_table):
-        syn.store(sc.Table(OUTPUT_TABLE, to_append_to_table))
+        t = sc.Table(OUTPUT_TABLE, to_append_to_table)
+        syn.store(t)
 
 
 def lambda_handler(e, c):
